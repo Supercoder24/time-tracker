@@ -1,36 +1,83 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
 body {
   display: flex;
   flex-direction: column;
   align-items: center;
   color: white;
   text-align: center;
-  margin-bottom: 90px;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  /* Side gutter so buttons/text don't run edge-to-edge, plus device
+     safe-area insets (notch, rounded corners, home-indicator bar) so
+     content isn't cramped against or hidden by them. */
+  padding-top: calc(0.4em + env(safe-area-inset-top, 0px));
+  padding-left: calc(0.4em + env(safe-area-inset-left, 0px));
+  padding-right: calc(0.4em + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(0.4em + env(safe-area-inset-bottom, 0px));
 }
 
 html {
   background-color: rgb(50,50,50);
-  font-size: 4em;
+  font-size: 1.53em;
+}
+
+#header {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+#listWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Padding (not external margin) so the scroll-shadow backgrounds below
+     reach all the way to the Clear/+ buttons, while the actual entries
+     still sit inset from them by this amount. */
+  padding-top: 1.2em;
+  padding-bottom: 1.2em;
+  background:
+    linear-gradient(rgb(50,50,50) 30%, rgba(50,50,50,0)),
+    linear-gradient(rgba(50,50,50,0), rgb(50,50,50) 70%) 0 100%,
+    radial-gradient(farthest-side at 50% 0, rgba(255,255,255,.5), rgba(255,255,255,0)),
+    radial-gradient(farthest-side at 50% 100%, rgba(255,255,255,.5), rgba(255,255,255,0)) 0 100%;
+  background-repeat: no-repeat;
+  background-color: rgb(50,50,50);
+  background-size: 100% 2em, 100% 2em, 100% 0.8em, 100% 0.8em;
+  background-attachment: local, local, scroll, scroll;
 }
 
 #clear, #add {
   max-width: 750px;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 4.6px;
+  border-radius: 4.6px;
   background: rgb(100, 100, 100);
   color: white;
   font-size: 2em;
   width: 100%;
 }
 
+#clear {
+  margin-top: 0.25em;
+}
+
 #add {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
+  flex: 0 0 auto;
 }
 
 #list {
   font-size: 2em;
+  width: 100%;
 }
 
 #list button {
@@ -39,10 +86,10 @@ html {
   /* border-radius: 100%; */
   border: 1px solid white;
   font-size: 0.5em;
-  width: 128px;
-  height: 128px;
-  transform: translateY(-12px);
-  margin-left: 40px;
+  width: 49px;
+  height: 49px;
+  transform: translateY(-4.6px);
+  margin-left: 15px;
 }
 
 h1 {
