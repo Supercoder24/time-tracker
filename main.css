@@ -1,3 +1,25 @@
+:root {
+  color-scheme: dark;
+
+  --bg-top: #1c1c1e;
+  --bg-bottom: #000000;
+
+  --text-primary: #ffffff;
+  --text-secondary: rgba(235, 235, 245, 0.6);
+
+  /* Base RGB triplets (no alpha) so both an opaque and a fully-transparent
+     version of the same hue can be derived for the glass fills and the
+     scroll-shadow masks, so they always blend seamlessly. */
+  --card-rgb: 44, 44, 46;
+  --glass-rgb: 255, 255, 255;
+  --accent-rgb: 10, 132, 255;
+  --danger-rgb: 255, 69, 58;
+
+  --glass-fill: rgba(var(--glass-rgb), 0.08);
+  --glass-border: rgba(var(--glass-rgb), 0.16);
+  --glass-shadow: rgba(0, 0, 0, 0.4);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -7,15 +29,22 @@ html, body {
   margin: 0;
 }
 
+html {
+  background: var(--bg-bottom);
+  font-size: 1.53em;
+}
+
 body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: white;
+  color: var(--text-primary);
   text-align: center;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(160deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
   /* Side gutter so buttons/text don't run edge-to-edge, plus device
      safe-area insets (notch, rounded corners, home-indicator bar) so
      content isn't cramped against or hidden by them. */
@@ -25,94 +54,196 @@ body {
   padding-bottom: calc(0.4em + env(safe-area-inset-bottom, 0px));
 }
 
-html {
-  background-color: rgb(50,50,50);
-  font-size: 1.53em;
-}
-
 #header {
   flex: 0 0 auto;
   width: 100%;
 }
 
+h1 {
+  font-size: 3em;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin-block-end: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+h2 {
+  font-size: 1.25em;
+  margin-block-start: 0;
+  margin-block-end: 0;
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 #listWrap {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* Padding (not external margin) so the scroll-shadow backgrounds below
-     reach all the way to the Clear/+ buttons, while the actual entries
-     still sit inset from them by this amount. */
-  padding-top: 1.2em;
-  padding-bottom: 1.2em;
-  background:
-    linear-gradient(rgb(50,50,50) 30%, rgba(50,50,50,0)),
-    linear-gradient(rgba(50,50,50,0), rgb(50,50,50) 70%) 0 100%,
-    radial-gradient(farthest-side at 50% 0, rgba(255,255,255,.5), rgba(255,255,255,0)),
-    radial-gradient(farthest-side at 50% 100%, rgba(255,255,255,.5), rgba(255,255,255,0)) 0 100%;
-  background-repeat: no-repeat;
-  background-color: rgb(50,50,50);
-  background-size: 100% 2em, 100% 2em, 100% 0.8em, 100% 0.8em;
-  background-attachment: local, local, scroll, scroll;
+  border-radius: 1.1em;
+  border: 1px solid var(--glass-border);
+  background-color: rgba(var(--card-rgb), 0.72);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 14px 34px var(--glass-shadow);
+}
+
+/* Scroll-shadow overlays: real sticky boxes (not part of #listWrap's own
+   background) so they always paint in front of the entry rows instead of
+   being hidden behind them. The negative margin cancels the flow height
+   they'd otherwise reserve, so they overlay rather than push content down.
+   updateScrollShadows() (script.js) toggles the show-*-shadow classes based
+   on actual scroll position, fading each in only when there's more to
+   scroll in that direction. */
+#listWrap::before,
+#listWrap::after {
+  content: "";
+  display: block;
+  position: sticky;
+  left: 0;
+  right: 0;
+  height: 0.8em;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+#listWrap::before {
+  top: 0;
+  margin-bottom: -0.8em;
+  background: linear-gradient(rgba(var(--glass-rgb), .3), rgba(var(--glass-rgb), 0));
+}
+
+#listWrap::after {
+  bottom: 0;
+  margin-top: -0.8em;
+  background: linear-gradient(rgba(var(--glass-rgb), 0), rgba(var(--glass-rgb), .3));
+}
+
+#listWrap.show-top-shadow::before {
+  opacity: 1;
+}
+
+#listWrap.show-bottom-shadow::after {
+  opacity: 1;
 }
 
 #clear, #add {
   max-width: 750px;
-  padding: 4.6px;
-  border-radius: 4.6px;
-  background: rgb(100, 100, 100);
-  color: white;
-  font-size: 2em;
   width: 100%;
+  padding: 0.45em 0.9em;
+  border-radius: 0.9em;
+  font-size: 2em;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(180deg, rgba(var(--glass-rgb), 0.18), rgba(var(--glass-rgb), 0.05));
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 8px 20px var(--glass-shadow), inset 0 1px 0 rgba(var(--glass-rgb), 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+#clear:active, #add:active {
+  transform: scale(0.97);
+  box-shadow: 0 4px 10px var(--glass-shadow), inset 0 1px 0 rgba(var(--glass-rgb), 0.15);
 }
 
 #clear {
   margin-top: 0.25em;
+  margin-bottom: 0.35em;
 }
 
 #add {
   flex: 0 0 auto;
+  margin-top: 0.35em;
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.65), rgba(var(--accent-rgb), 0.35));
+  border-color: rgba(var(--accent-rgb), 0.6);
 }
 
 #list {
-  font-size: 2em;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  font-size: 1.4em;
   width: 100%;
 }
 
-#list button {
+#none {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+}
+
+.entryCell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.2em 0.3em;
+  border-bottom: 1px solid rgba(var(--glass-rgb), 0.08);
+}
+
+.entryCell:nth-child(odd) {
+  border-right: 1px solid rgba(var(--glass-rgb), 0.08);
+}
+
+.entryTime {
+  flex: 1 1 auto;
+  text-align: center;
+}
+
+.entryCell button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  width: 1.5em;
+  height: 1.5em;
+  padding: 0;
+  font-size: 0.6em;
+  line-height: 1;
+  font-family: inherit;
   color: white;
-  background: red;
-  /* border-radius: 100%; */
-  border: 1px solid white;
-  font-size: 0.5em;
-  width: 49px;
-  height: 49px;
-  transform: translateY(-4.6px);
-  margin-left: 15px;
+  border-radius: 50%;
+  margin-left: 0.35em;
+  flex: 0 0 auto;
+  background-color: transparent;
+  background-image: linear-gradient(180deg, rgba(var(--danger-rgb), 0.95), rgba(200, 40, 35, 0.95));
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(var(--glass-rgb), 0.3);
+  transition: transform 0.15s ease;
 }
 
-h1 {
-  font-size: 3em;
-  margin-block-end: 0;
+.entryCell button:active {
+  transform: scale(0.9);
 }
 
-h2 {
-  margin-block-start: 0;
-  margin-block-end: 0;
+h1, h2, #estimateInput, #granularitySelect {
+  font-family: inherit;
 }
 
 #estimateInput {
   display: none;
   font: inherit;
-  color: white;
-  background: rgb(80, 80, 80);
-  border: none;
-  border-radius: 0.1em;
-  width: 1.4em;
+  color: var(--text-primary);
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.2em;
+  width: 2.2em;
   margin-right: 0.1em;
   text-align: center;
   -moz-appearance: textfield;
+  caret-color: rgb(var(--accent-rgb));
+}
+
+#estimateInput::selection {
+  background: rgba(var(--accent-rgb), 0.45);
 }
 
 /* Hide the native spinner arrows; they crowd the "h" suffix and aren't
@@ -124,9 +255,17 @@ h2 {
 }
 
 #granularitySelect {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   font: inherit;
-  color: white;
-  background: rgb(80, 80, 80);
-  border: none;
-  border-radius: 0.1em;
+  color: var(--text-secondary);
+  background-color: rgba(var(--glass-rgb), 0.05);
+  border: 1px solid rgba(var(--glass-rgb), 0.12);
+  border-radius: 0.2em;
+  padding: 0 0.8em 0 0.1em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8a8ad' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.12em center;
+  background-size: 0.5em 0.5em;
 }

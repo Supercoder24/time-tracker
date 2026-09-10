@@ -1,6 +1,6 @@
 # Time Tracker
 
-A minimal, single-page work-hours tracker built with plain HTML, CSS, and JavaScript. It records clock-in/clock-out timestamps and shows a running total of hours worked, with no build step, framework, or backend — everything runs in the browser and persists via `localStorage`.
+A minimal, single-page work-hours tracker built with plain HTML, CSS, and JavaScript. It records clock-in/clock-out timestamps and shows a running total of hours worked, with no build step, framework, or backend — everything runs in the browser and persists via `localStorage`. The layout and styling are tuned for mobile Safari/iOS (safe-area insets, a dark "liquid glass" aesthetic), with a fixed header and a `+` button that stay in place while only the entry list scrolls.
 
 ## What it does
 
@@ -9,10 +9,11 @@ A minimal, single-page work-hours tracker built with plain HTML, CSS, and JavaSc
 - **Projected finish time**: While clocked in, the app calculates and displays the clock time at which the day's total will reach a target estimate (7 hours by default), so you know when you can stop.
 - **Adjustable estimate**: Tapping the estimate label (e.g. "7h") turns it into a number input — type a new value (0.1-20 hours, in 0.1hr steps) and it's saved and reflected immediately, e.g. "8h: 5:35 PM". The input uses `inputmode="decimal"` so phones show a numeric keypad. The chosen estimate persists in `localStorage` across sessions.
 - **Next mark**: Also while clocked in, it shows the next clock time at which your cumulative total will tick over to the next unit of a chosen granularity — tenth of an hour (6 minutes, the default), half hour (30 minutes), or hour (60 minutes). A dropdown next to "Next" switches between them, e.g. "Next half: 4:30 PM". The chosen granularity persists in `localStorage` across sessions.
-- **Editable entries**: Every logged timestamp is shown in a list as separate hour/minute spans. Tapping the hours or minutes of any entry opens a prompt to correct it (e.g. if you forgot to clock in/out at the right time).
-- **Delete an entry**: Each row has a `-` button (with a confirmation prompt) to remove that timestamp.
+- **Editable entries**: Every logged timestamp is shown as separate hour/minute spans, displayed two-per-row — each start time paired with its matching end time — so more entries fit on screen at once. Tapping the hours or minutes of any entry opens a prompt to correct it (e.g. if you forgot to clock in/out at the right time). A currently-active session (no end time yet) appears alone, occupying just the first slot of its row.
+- **Delete an entry**: Each entry has its own `-` button (with a confirmation prompt) to remove that timestamp.
 - **Clear all**: A `Clear` button (with confirmation) wipes every entry and resets the tracker.
-- **Empty state**: When there are no entries, a "No Entries" message is shown instead of the (empty) table.
+- **Empty state**: When there are no entries, a centered "No Entries" message is shown instead of the (empty) list.
+- **Scrollable entry list**: The header (total, estimate, next-mark, `Clear`) and the `+` button stay fixed on screen; only the entry list between them scrolls. Soft top/bottom highlight overlays fade in over the list only when there's more content to scroll to in that direction, and disappear at the true start/end.
 
 ## How it works
 
@@ -28,7 +29,11 @@ All mutations go through `setEntries()`, which updates the in-memory array, pers
 
 ### Rendering
 
-`showEntries()` rebuilds the `<table id="list">` from scratch on every state change: one row per entry, with clickable hour/minute spans (for editing) and a delete button. `main.css` styles this as a dark, large-font, mobile-friendly layout with a fixed `+` button pinned to the bottom of the screen, making it easy to use one-handed on a phone.
+`showEntries()` rebuilds `<div id="list">` from scratch on every state change, appending one `.entryCell` div per entry — each containing clickable hour/minute spans (for editing) and its own delete button — in the same order they appear in `entries`. `#list` is styled as a two-column CSS grid, so with no per-entry pairing logic in JS, consecutive entries (a start immediately followed by its end) simply land side-by-side as the grid auto-flows; an odd trailing entry (currently clocked in) is left alone in the first column of its row. `main.css` styles the page as a fixed-height flex column: a fixed-size `#header` (total/estimate/next-mark/`Clear`) on top, a `#listWrap` card that fills the remaining space and is the only element that scrolls (`overflow-y: auto`), and the `+` button as a fixed-size row at the bottom — so `+` and `Clear` never move or get covered regardless of how many entries there are. Scroll position is tracked by a small `scroll` listener (`updateScrollShadows()`) that toggles CSS classes controlling the top/bottom highlight overlays described above.
+
+### Layout and styling
+
+The page targets a phone screen edge-to-edge: `index.html` sets `viewport-fit=cover` so CSS `env(safe-area-inset-*)` resolves to real values on notched/home-indicator devices, and `main.css` uses those insets (plus a small fixed gutter) as padding on `body` so content clears the device's rounded corners, notch, and home-indicator bar rather than running flush against them. Visually, the UI follows a dark "liquid glass" style: translucent, blurred (`backdrop-filter`) panels for the entry list and buttons, soft drop shadows for depth, an accent-blue tint on the primary `+` action, and the system font stack (`-apple-system` and friends) so it renders as San Francisco on real Apple devices.
 
 ### Time math
 
@@ -56,10 +61,10 @@ There is no server or database. State lives entirely in the browser's `localStor
 
 | File | Purpose |
 |---|---|
-| [index.html](index.html) | Page structure: total/summary headers, entry table, add/clear buttons. |
-| [main.css](main.css) | Dark, large-text, mobile-first styling; fixed bottom `+` button. |
+| [index.html](index.html) | Page structure: fixed header (total/estimate/next-mark/`Clear`), scrollable two-column entry grid, `+` button. |
+| [main.css](main.css) | Dark "liquid glass" styling: fixed-height flex layout, blurred/translucent panels, safe-area-aware spacing, scroll-shadow overlays. |
 | [script.js](script.js) | All application logic: entry management, persistence, rendering, and time calculations. |
 
 ## Usage
 
-Open [index.html](index.html) directly in a browser — no build step or server required. Tap `+` to clock in, tap `+` again to clock out, and repeat throughout the day. Edit or delete entries by tapping their hour/minute values or the `-` button, use `Clear` to start fresh, tap the estimate label (e.g. "7h") to set a different daily-hours target, and use the "Next" dropdown to switch the next-mark granularity between tenth-hour, half-hour, and hour.
+Open [index.html](index.html) directly in a browser — no build step or server required. Tap `+` to clock in, tap `+` again to clock out, and repeat throughout the day; each start/end pair renders side-by-side once both are logged. Edit or delete entries by tapping their hour/minute values or an entry's `-` button, use `Clear` to start fresh, tap the estimate label (e.g. "7h") to set a different daily-hours target, and use the "Next" dropdown to switch the next-mark granularity between tenth-hour, half-hour, and hour. The header and `+` stay put; scroll within the entry list to see older or additional entries.

@@ -62,25 +62,26 @@ function showEntries() {
   const list = document.getElementById('list')
   list.innerHTML = ""
   for (let i = 0; i < entries.length; i++) {
-    let row = document.createElement('tr')
-    let cell = document.createElement('td')
+    let cell = document.createElement('div')
+    cell.className = 'entryCell'
+    let time = document.createElement('span')
+    time.className = 'entryTime'
     let hrs = document.createElement('span')
     hrs.innerText = entries[i].substring(0, 2)
     hrs.onclick = () => {
       setHrs(i)
     }
-    cell.appendChild(hrs)
+    time.appendChild(hrs)
     let colon = document.createElement('span')
     colon.innerText = entries[i].charAt(2)
-    cell.appendChild(colon)
+    time.appendChild(colon)
     let mins = document.createElement('span')
     mins.innerText = entries[i].substring(3, 5)
     mins.onclick = () => {
       setMins(i)
     }
-    cell.appendChild(mins)
-    row.appendChild(cell)
-    let deleteCell = document.createElement('td')
+    time.appendChild(mins)
+    cell.appendChild(time)
     let deleter = document.createElement('button')
     deleter.innerText = '-'
     deleter.onclick = () => {
@@ -88,11 +89,23 @@ function showEntries() {
         setEntries(entries.filter((e, j) => j != i))
       }
     }
-    deleteCell.appendChild(deleter)
-    row.appendChild(deleteCell)
-    list.appendChild(row)
+    cell.appendChild(deleter)
+    list.appendChild(cell)
   }
+  updateScrollShadows()
 }
+
+// Keeps the top/bottom scroll-shadow overlays in sync with actual scroll
+// position, so they only show in the direction there's more to scroll.
+function updateScrollShadows() {
+  const wrap = document.getElementById('listWrap')
+  const atTop = wrap.scrollTop <= 1
+  const atBottom = wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 1
+  wrap.classList.toggle('show-top-shadow', !atTop)
+  wrap.classList.toggle('show-bottom-shadow', !atBottom)
+}
+
+document.getElementById('listWrap').addEventListener('scroll', updateScrollShadows)
 
 function checkTime() {
   calcTotal()
