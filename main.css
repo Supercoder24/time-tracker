@@ -75,3 +75,11 @@ h2 {
   -webkit-appearance: none;
   margin: 0;
 }
+
+#granularitySelect {
+  font: inherit;
+  color: white;
+  background: rgb(80, 80, 80);
+  border: none;
+  border-radius: 0.1em;
+}

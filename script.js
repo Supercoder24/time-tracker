@@ -1,5 +1,3 @@
-// TODO: Add display for next tenth hour/half hour/hour
-
 // Element IDs: Add, none, list, total, history
 
 let entries = []
@@ -9,8 +7,14 @@ let interval;
 // 0.1-20 in 0.1 steps and persisted separately from `entries`.
 let estimateHours = loadEstimateHours()
 
+// Granularity (in minutes) for the "next mark" display: tenth-hour (6),
+// half-hour (30), or hour (60). Persisted separately from `entries`.
+const GRANULARITY_OPTIONS = [6, 30, 60]
+let granularityMins = loadGranularity()
+
 getEntries()
 showEstimateLabel()
+showGranularitySelect()
 
 function setEntries(newEntries) {
   entries = newEntries
@@ -145,6 +149,26 @@ document.getElementById('estimateInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') e.target.blur() // commit on Enter, same as blur
 })
 
+function loadGranularity() {
+  let saved = parseInt(localStorage.getItem('granularityMinutes'))
+  return GRANULARITY_OPTIONS.includes(saved) ? saved : 6
+}
+
+function setGranularity(mins) {
+  if (!GRANULARITY_OPTIONS.includes(mins)) return
+  granularityMins = mins
+  localStorage.setItem('granularityMinutes', granularityMins)
+  calcTotal()
+}
+
+function showGranularitySelect() {
+  document.getElementById('granularitySelect').value = granularityMins
+}
+
+document.getElementById('granularitySelect').addEventListener('change', (e) => {
+  setGranularity(parseInt(e.target.value))
+})
+
 // Converts minutes-since-midnight into a 12-hour "H:MM AM/PM" string.
 // Wraps properly across hour and day boundaries, and even accepts a
 // negative or >1440 input (e.g. a projected time before "now" or past
@@ -195,16 +219,16 @@ function calcTotal() {
     let minsLeft = (estimateHours * 60) - subtotal
     document.getElementById('endTime').innerText = formatClock(startAbs + minsLeft)
 
-    // Calculate next 6-minute (tenth-of-an-hour) mark. This has to be based
-    // on the day's cumulative total (subtotal from earlier completed
-    // sessions plus time elapsed in this one), not just this session's own
-    // elapsed time, otherwise the mark is wrong whenever there was an
-    // earlier completed session today. Also use a true positive modulo
-    // (JS's % keeps the sign of the dividend) so the offset to the next
-    // mark is always 0-5, never negative.
+    // Calculate the next granularity-minute mark (tenth-hour/half-hour/hour,
+    // per granularityMins). This has to be based on the day's cumulative
+    // total (subtotal from earlier completed sessions plus time elapsed in
+    // this one), not just this session's own elapsed time, otherwise the
+    // mark is wrong whenever there was an earlier completed session today.
+    // Also use a true positive modulo (JS's % keeps the sign of the
+    // dividend) so the offset to the next mark is never negative.
     let totalSoFar = subtotal + (nowAbs - startAbs)
-    let remainder = ((totalSoFar % 6) + 6) % 6
-    let minsToNext = (6 - remainder) % 6
+    let remainder = ((totalSoFar % granularityMins) + granularityMins) % granularityMins
+    let minsToNext = (granularityMins - remainder) % granularityMins
     document.getElementById('tenth').innerText = formatClock(nowAbs + minsToNext)
   } else {
     document.getElementById('endTime').innerText = 'never'

@@ -10,7 +10,11 @@
   <!-- <button id="history">History</button> -->
   <h1>Total: <span id="total"></span></h1>
   <h2><span id="estimateLabel"><span id="estimateValue">7</span><input id="estimateInput" type="number" inputmode="decimal" step="0.1" min="0.1" max="20">h</span>: <span id="endTime"></span></h2>
-  <h2>Next tenth: <span id="tenth"></span></h2>
+  <h2>Next <select id="granularitySelect">
+      <option value="6">tenth</option>
+      <option value="30">half</option>
+      <option value="60">hour</option>
+    </select>: <span id="tenth"></span></h2>
   <button id="clear">Clear</button>
   <table id="list"></table>
   <h2 id="none">No Entries</h2>
