@@ -6,7 +6,8 @@ A minimal, single-page work-hours tracker built with plain HTML, CSS, and JavaSc
 
 - **Clock in / clock out**: Tapping the `+` button logs the current time. Entries alternate between a "start" and an "end" timestamp — the first tap starts a work session, the next tap ends it, and so on.
 - **Running total**: The header shows the total hours worked so far, rounded down to the nearest tenth. If a session is currently active (an odd number of entries), the total keeps counting up live, updating once per second.
-- **Projected 7-hour finish time**: While clocked in, the app calculates and displays the clock time at which the day's total will reach 7 hours, so you know when you can stop.
+- **Projected finish time**: While clocked in, the app calculates and displays the clock time at which the day's total will reach a target estimate (7 hours by default), so you know when you can stop.
+- **Adjustable estimate**: Tapping the estimate label (e.g. "7h") turns it into a number input — type a new value (0.1-20 hours, in 0.1hr steps) and it's saved and reflected immediately, e.g. "8h: 5:35 PM". The input uses `inputmode="decimal"` so phones show a numeric keypad. The chosen estimate persists in `localStorage` across sessions.
 - **Next tenth-hour marker**: Also while clocked in, it shows the next clock time at which your total will tick over to the next tenth of an hour (i.e. the next 6-minute increment) — useful for billing in tenth-hour units.
 - **Editable entries**: Every logged timestamp is shown in a list as separate hour/minute spans. Tapping the hours or minutes of any entry opens a prompt to correct it (e.g. if you forgot to clock in/out at the right time).
 - **Delete an entry**: Each row has a `-` button (with a confirmation prompt) to remove that timestamp.
@@ -34,14 +35,18 @@ All mutations go through `setEntries()`, which updates the in-memory array, pers
 `calcTotal()` walks the `entries` array two at a time (start/end pairs), converting each `HH:MM` into total minutes since midnight to compute the duration of each session. If the last pair is incomplete (currently clocked in), it uses the current time as a stand-in "end" so the total stays live. Minutes are summed, converted to hours, and floored to one decimal place for display.
 
 When a session is active, the same function also derives, via a shared `formatClock()` helper that converts minutes-since-midnight into a 12-hour `H:MM AM/PM` string:
-- **`endTime`** — the clock time at which accumulated minutes will reach 7 hours (420 minutes) for the day. This is `subtotal` (minutes from prior *completed* sessions) subtracted from 420 to get the minutes still needed, added to the current session's start time. If `subtotal` already exceeds 420 (the day's total passed 7 hours before this session even began), the result is a target time in the past — `formatClock()` still normalizes it into a valid clock time rather than showing negative minutes.
+- **`endTime`** — the clock time at which accumulated minutes will reach the target estimate (`estimateHours * 60` minutes) for the day. This is `subtotal` (minutes from prior *completed* sessions) subtracted from the target to get the minutes still needed, added to the current session's start time. If `subtotal` already exceeds the target (the day's total passed the estimate before this session even began), the result is a target time in the past — `formatClock()` still normalizes it into a valid clock time rather than showing negative minutes.
 - **`tenth`** — the next clock time at which the day's *cumulative* total (prior completed sessions' `subtotal` plus time elapsed in the current session) will cross a 6-minute boundary, used for tenth-hour billing granularity. The offset to the next boundary is computed with a true positive modulo (`((totalSoFar % 6) + 6) % 6`), since including `subtotal` means the running total isn't guaranteed to start at a multiple of 6.
 
 `formatClock()` centralizes the hour-rollover and 12-hour conversion so both values handle an exact `:60` minute boundary, negative offsets, and midnight wraparound consistently, and both are labeled AM/PM to avoid ambiguity.
 
+### Adjustable estimate
+
+The target used for the projected finish time is held in `estimateHours` (default `7`), separate from `entries`. Tapping the `#estimateLabel` span (`editEstimate()`) hides it and reveals `#estimateInput` — a `type="number"` field with `inputmode="decimal"`, so mobile browsers show a numeric keypad instead of a full text keyboard. Blurring the input (including via Enter, which just triggers `blur()`) calls `finishEstimateEdit()`, which reads the typed value and, if it's a valid number, hands it to `setEstimateHours()`. That function routes the value through `clampEstimate()` — rounding to the nearest 0.1 and clamping to the 0.1-20 range — before storing it in `estimateHours`, persisting it to `localStorage` under the `estimateHours` key, refreshing the label text (`showEstimateLabel()`), and recalculating `endTime` via `calcTotal()`. An invalid (empty/non-numeric) input is discarded, leaving the previous estimate in place.
+
 ### Persistence
 
-There is no server or database. State lives entirely in the browser's `localStorage` under the `entries` key, so data is local to the device/browser and survives page reloads but isn't synced across devices.
+There is no server or database. State lives entirely in the browser's `localStorage`: work entries under the `entries` key, and the finish-time estimate under the `estimateHours` key. Data is local to the device/browser and survives page reloads but isn't synced across devices.
 
 ## Files
 
@@ -53,4 +58,4 @@ There is no server or database. State lives entirely in the browser's `localStor
 
 ## Usage
 
-Open [index.html](index.html) directly in a browser — no build step or server required. Tap `+` to clock in, tap `+` again to clock out, and repeat throughout the day. Edit or delete entries by tapping their hour/minute values or the `-` button, and use `Clear` to start fresh.
+Open [index.html](index.html) directly in a browser — no build step or server required. Tap `+` to clock in, tap `+` again to clock out, and repeat throughout the day. Edit or delete entries by tapping their hour/minute values or the `-` button, use `Clear` to start fresh, and tap the estimate label (e.g. "7h") to set a different daily-hours target.

@@ -5,7 +5,12 @@
 let entries = []
 let interval;
 
+// Daily-hours estimate used for the projected finish time, adjustable
+// 0.1-20 in 0.1 steps and persisted separately from `entries`.
+let estimateHours = loadEstimateHours()
+
 getEntries()
+showEstimateLabel()
 
 function setEntries(newEntries) {
   entries = newEntries
@@ -89,6 +94,57 @@ function checkTime() {
   calcTotal()
 }
 
+function clampEstimate(hrs) {
+  if (isNaN(hrs)) return 7
+  hrs = Math.round(hrs * 10) / 10 // snap to 0.1hr increments
+  return Math.min(20, Math.max(0.1, hrs))
+}
+
+function loadEstimateHours() {
+  return clampEstimate(parseFloat(localStorage.getItem('estimateHours')))
+}
+
+function setEstimateHours(hrs) {
+  estimateHours = clampEstimate(hrs)
+  localStorage.setItem('estimateHours', estimateHours)
+  showEstimateLabel()
+  calcTotal()
+}
+
+function showEstimateLabel() {
+  document.getElementById('estimateValue').innerText = estimateHours
+}
+
+// Tapping anywhere in the "7h" label (number or the "h" suffix) swaps the
+// number for an input so the estimate can be adjusted; the "h" stays put
+// so it keeps reading "[input]h" while editing.
+function editEstimate() {
+  const input = document.getElementById('estimateInput')
+  if (input.style.display === 'inline-block') return // already editing
+  document.getElementById('estimateValue').style.display = 'none'
+  input.value = estimateHours
+  input.style.display = 'inline-block'
+  input.focus()
+  input.select()
+}
+
+function finishEstimateEdit() {
+  const input = document.getElementById('estimateInput')
+  let value = parseFloat(input.value)
+  if (!isNaN(value)) {
+    setEstimateHours(value)
+  }
+  input.style.display = 'none'
+  document.getElementById('estimateValue').style.display = 'inline'
+}
+
+document.getElementById('estimateLabel').addEventListener('click', editEstimate)
+document.getElementById('estimateInput').addEventListener('click', (e) => e.stopPropagation()) // don't re-trigger editEstimate while already editing
+document.getElementById('estimateInput').addEventListener('blur', finishEstimateEdit)
+document.getElementById('estimateInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') e.target.blur() // commit on Enter, same as blur
+})
+
 // Converts minutes-since-midnight into a 12-hour "H:MM AM/PM" string.
 // Wraps properly across hour and day boundaries, and even accepts a
 // negative or >1440 input (e.g. a projected time before "now" or past
@@ -131,11 +187,12 @@ function calcTotal() {
     let now = dateToEntry(new Date())
     let nowAbs = parseInt(now.substring(0, 2)) * 60 + parseInt(now.substring(3, 5))
 
-    // Calculate 7 hr point: a fixed number of minutes after this session's
-    // start. minsLeft can be negative if earlier completed sessions already
-    // total 7+ hours; formatClock's wraparound still resolves that to a
-    // sensible clock time instead of producing negative minutes.
-    let minsLeft = (7 * 60) - subtotal
+    // Calculate the estimate point: a fixed number of minutes after this
+    // session's start. minsLeft can be negative if earlier completed
+    // sessions already exceed the estimate; formatClock's wraparound still
+    // resolves that to a sensible clock time instead of producing negative
+    // minutes.
+    let minsLeft = (estimateHours * 60) - subtotal
     document.getElementById('endTime').innerText = formatClock(startAbs + minsLeft)
 
     // Calculate next 6-minute (tenth-of-an-hour) mark. This has to be based
