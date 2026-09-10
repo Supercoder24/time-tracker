@@ -1,0 +1,56 @@
+# Time Tracker
+
+A minimal, single-page work-hours tracker built with plain HTML, CSS, and JavaScript. It records clock-in/clock-out timestamps and shows a running total of hours worked, with no build step, framework, or backend — everything runs in the browser and persists via `localStorage`.
+
+## What it does
+
+- **Clock in / clock out**: Tapping the `+` button logs the current time. Entries alternate between a "start" and an "end" timestamp — the first tap starts a work session, the next tap ends it, and so on.
+- **Running total**: The header shows the total hours worked so far, rounded down to the nearest tenth. If a session is currently active (an odd number of entries), the total keeps counting up live, updating once per second.
+- **Projected 7-hour finish time**: While clocked in, the app calculates and displays the clock time at which the day's total will reach 7 hours, so you know when you can stop.
+- **Next tenth-hour marker**: Also while clocked in, it shows the next clock time at which your total will tick over to the next tenth of an hour (i.e. the next 6-minute increment) — useful for billing in tenth-hour units.
+- **Editable entries**: Every logged timestamp is shown in a list as separate hour/minute spans. Tapping the hours or minutes of any entry opens a prompt to correct it (e.g. if you forgot to clock in/out at the right time).
+- **Delete an entry**: Each row has a `-` button (with a confirmation prompt) to remove that timestamp.
+- **Clear all**: A `Clear` button (with confirmation) wipes every entry and resets the tracker.
+- **Empty state**: When there are no entries, a "No Entries" message is shown instead of the (empty) table.
+
+## How it works
+
+### Data model
+
+The entire state is a single array of `"HH:MM"` strings in `entries`, stored under the `entries` key in `localStorage`. Entries alternate meaning by position:
+
+- Even indices (0, 2, 4, …) are **start** times.
+- Odd indices (1, 3, 5, …) are **end** times.
+- If the array has an odd length, the last entry is a start time with no matching end yet — i.e., the tracker is currently "clocked in."
+
+All mutations go through `setEntries()`, which updates the in-memory array, persists it to `localStorage`, and re-renders the UI (`showEntries()` + `calcTotal()`). It also starts or stops a one-second `setInterval` (`checkTime`) depending on whether a session is active, so the total and projected times refresh live only while clocked in.
+
+### Rendering
+
+`showEntries()` rebuilds the `<table id="list">` from scratch on every state change: one row per entry, with clickable hour/minute spans (for editing) and a delete button. `main.css` styles this as a dark, large-font, mobile-friendly layout with a fixed `+` button pinned to the bottom of the screen, making it easy to use one-handed on a phone.
+
+### Time math
+
+`calcTotal()` walks the `entries` array two at a time (start/end pairs), converting each `HH:MM` into total minutes since midnight to compute the duration of each session. If the last pair is incomplete (currently clocked in), it uses the current time as a stand-in "end" so the total stays live. Minutes are summed, converted to hours, and floored to one decimal place for display.
+
+When a session is active, the same function also derives, via a shared `formatClock()` helper that converts minutes-since-midnight into a 12-hour `H:MM AM/PM` string:
+- **`endTime`** — the clock time at which accumulated minutes will reach 7 hours (420 minutes) for the day. This is `subtotal` (minutes from prior *completed* sessions) subtracted from 420 to get the minutes still needed, added to the current session's start time. If `subtotal` already exceeds 420 (the day's total passed 7 hours before this session even began), the result is a target time in the past — `formatClock()` still normalizes it into a valid clock time rather than showing negative minutes.
+- **`tenth`** — the next clock time at which the day's *cumulative* total (prior completed sessions' `subtotal` plus time elapsed in the current session) will cross a 6-minute boundary, used for tenth-hour billing granularity. The offset to the next boundary is computed with a true positive modulo (`((totalSoFar % 6) + 6) % 6`), since including `subtotal` means the running total isn't guaranteed to start at a multiple of 6.
+
+`formatClock()` centralizes the hour-rollover and 12-hour conversion so both values handle an exact `:60` minute boundary, negative offsets, and midnight wraparound consistently, and both are labeled AM/PM to avoid ambiguity.
+
+### Persistence
+
+There is no server or database. State lives entirely in the browser's `localStorage` under the `entries` key, so data is local to the device/browser and survives page reloads but isn't synced across devices.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| [index.html](index.html) | Page structure: total/summary headers, entry table, add/clear buttons. |
+| [main.css](main.css) | Dark, large-text, mobile-first styling; fixed bottom `+` button. |
+| [script.js](script.js) | All application logic: entry management, persistence, rendering, and time calculations. |
+
+## Usage
+
+Open [index.html](index.html) directly in a browser — no build step or server required. Tap `+` to clock in, tap `+` again to clock out, and repeat throughout the day. Edit or delete entries by tapping their hour/minute values or the `-` button, and use `Clear` to start fresh.
