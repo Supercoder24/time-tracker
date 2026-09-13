@@ -6,10 +6,10 @@
 
   --text-primary: #ffffff;
   --text-secondary: rgba(235, 235, 245, 0.6);
+  --text-tertiary: rgba(235, 235, 245, 0.45); /* eyebrow labels, card footnotes */
 
-  /* Base RGB triplets (no alpha) so both an opaque and a fully-transparent
-     version of the same hue can be derived for the glass fills and the
-     scroll-shadow masks, so they always blend seamlessly. */
+  /* Base RGB triplets (no alpha) so an opaque and a fully-transparent version
+     of the same hue can be derived, and always blend seamlessly. */
   --card-rgb: 44, 44, 46;
   --glass-rgb: 255, 255, 255;
   --accent-rgb: 10, 132, 255;
@@ -18,10 +18,22 @@
   --glass-fill: rgba(var(--glass-rgb), 0.08);
   --glass-border: rgba(var(--glass-rgb), 0.16);
   --glass-shadow: rgba(0, 0, 0, 0.4);
+
+  --accent-text: rgb(90, 170, 255);      /* the accent, lightened to read as text */
+  --raised-bg: rgba(28, 28, 30, 0.96);   /* surfaces floating above the page */
+
+  --swipe-ms: 180ms;
+  --pull-ms: 260ms;
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
+}
+
+/* Overlays are toggled with the `hidden` attribute; without this the display
+   values below would win and `hidden` would do nothing. */
+[hidden] {
+  display: none !important;
 }
 
 html, body {
@@ -35,9 +47,6 @@ html {
 }
 
 body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   color: var(--text-primary);
   text-align: center;
   height: 100vh;
@@ -45,14 +54,134 @@ body {
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   background: linear-gradient(160deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
-  /* Side gutter so buttons/text don't run edge-to-edge, plus device
-     safe-area insets (notch, rounded corners, home-indicator bar) so
-     content isn't cramped against or hidden by them. */
+}
+
+/* Siblings stacked in one box, so the dashboard slides over the page rather
+   than pushing it. Both carry the side gutter and device safe-area insets. */
+#page, #dashboard {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding-top: calc(0.4em + env(safe-area-inset-top, 0px));
   padding-left: calc(0.4em + env(safe-area-inset-left, 0px));
   padding-right: calc(0.4em + env(safe-area-inset-right, 0px));
   padding-bottom: calc(0.4em + env(safe-area-inset-bottom, 0px));
 }
+
+/* Horizontal drags are the project swipe and must reach JS; vertical panning
+   stays native so the entry list scrolls. The transition lives here so the
+   swipe code can hand it back to CSS by clearing the inline value. */
+#page {
+  touch-action: pan-y;
+  transition: transform var(--swipe-ms) ease-out;
+}
+
+/* ---- Project strip ---- */
+
+/* Neither scrolls, so both axes belong to JS: the pull-down always works here. */
+#projectBar, #header {
+  touch-action: none;
+}
+
+#projectBar {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+}
+
+/* Pixels, not em, so these small hardware-like details stay crisp instead of
+   scaling with the type ramp. */
+#grabber, #dashGrabber {
+  position: relative;
+  width: 48px;
+  height: 5px;
+  border-radius: 2.5px;
+  background: rgba(var(--glass-rgb), 0.22);
+  cursor: pointer;
+}
+
+/* These controls are deliberately small to look at, so each one carries an
+   invisible tap target around it. Insets are chosen to clear the 44px
+   minimum without changing the layout the visible shapes produce. */
+#grabber::after, #dashGrabber::after {
+  content: "";
+  position: absolute;
+  inset: -20px -40px;
+}
+
+/* Brighter on the dashboard, where it means "pull this back up". */
+#dashGrabber {
+  background: rgba(var(--glass-rgb), 0.4);
+}
+
+/* Padded out to a comfortable tap target, and tinted on press so the tap that
+   opens the rename sheet is acknowledged. */
+#projectNameRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  border-radius: 0.5em;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+#projectNameRow:active {
+  background: rgba(var(--glass-rgb), 0.08);
+}
+
+/* Beside the name = this project holds the clock. */
+#runningDot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgb(var(--accent-rgb));
+  box-shadow: 0 0 11px rgba(var(--accent-rgb), 0.9);
+}
+
+#projectName {
+  font-size: 1.05em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Wraps rather than overflowing once a deck outgrows one row. */
+#projectDots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  max-width: 100%;
+}
+
+.deckDot {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgba(var(--glass-rgb), 0.26);
+  cursor: pointer;
+}
+
+/* Tap target, sized so neighbouring dots meet but never overlap. */
+.deckDot::after {
+  content: "";
+  position: absolute;
+  inset: -17px -11px;
+}
+
+.deckDot.active {
+  background: rgb(var(--accent-rgb));
+}
+
+/* ---- Header ---- */
 
 #header {
   flex: 0 0 auto;
@@ -63,7 +192,8 @@ h1 {
   font-size: 3em;
   font-weight: 700;
   letter-spacing: -0.015em;
-  margin-block-end: 0;
+  margin: 0.06em 0 0 0; /* v1's gap now belongs to the project strip */
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
@@ -76,28 +206,80 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
-#listWrap {
+h1, h2, #estimateInput, #granularitySelect {
+  font-family: inherit;
+}
+
+#estimateInput {
+  display: none;
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.2em;
+  width: 2.2em;
+  margin-right: 0.1em;
+  text-align: center;
+  -moz-appearance: textfield;
+  caret-color: rgb(var(--accent-rgb));
+}
+
+#estimateInput::selection {
+  background: rgba(var(--accent-rgb), 0.45);
+}
+
+/* The native spinners crowd the "h" suffix and aren't useful at this size. */
+#estimateInput::-webkit-outer-spin-button,
+#estimateInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#granularitySelect {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  font: inherit;
+  color: var(--text-secondary);
+  background-color: rgba(var(--glass-rgb), 0.05);
+  border: 1px solid rgba(var(--glass-rgb), 0.12);
+  border-radius: 0.2em;
+  padding: 0 0.8em 0 0.1em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8a8ad' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.12em center;
+  background-size: 0.5em 0.5em;
+}
+
+/* ---- Entry list ---- */
+
+/* The card owns the border, fill and clipping and does not scroll, so the
+   toast and empty state can sit against its real bounds. */
+#listCard {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
   border-radius: 1.1em;
   border: 1px solid var(--glass-border);
   background-color: rgba(var(--card-rgb), 0.72);
   backdrop-filter: blur(24px) saturate(160%);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   box-shadow: 0 14px 34px var(--glass-shadow);
+  touch-action: pan-y; /* vertical scrolls entries, horizontal is the swipe */
 }
 
-/* Scroll-shadow overlays: real sticky boxes (not part of #listWrap's own
-   background) so they always paint in front of the entry rows instead of
-   being hidden behind them. The negative margin cancels the flow height
-   they'd otherwise reserve, so they overlay rather than push content down.
-   updateScrollShadows() (script.js) toggles the show-*-shadow classes based
-   on actual scroll position, fading each in only when there's more to
-   scroll in that direction. */
+#listWrap {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sticky boxes rather than a background, so they paint in front of the rows.
+   The negative margin cancels the flow height they would otherwise reserve,
+   so they overlay instead of pushing content down. */
 #listWrap::before,
 #listWrap::after {
   content: "";
@@ -132,40 +314,6 @@ h2 {
   opacity: 1;
 }
 
-#clear, #add {
-  max-width: 750px;
-  width: 100%;
-  padding: 0.45em 0.9em;
-  border-radius: 0.9em;
-  font-size: 2em;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--text-primary);
-  border: 1px solid var(--glass-border);
-  background: linear-gradient(180deg, rgba(var(--glass-rgb), 0.18), rgba(var(--glass-rgb), 0.05));
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  box-shadow: 0 8px 20px var(--glass-shadow), inset 0 1px 0 rgba(var(--glass-rgb), 0.25);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-#clear:active, #add:active {
-  transform: scale(0.97);
-  box-shadow: 0 4px 10px var(--glass-shadow), inset 0 1px 0 rgba(var(--glass-rgb), 0.15);
-}
-
-#clear {
-  margin-top: 0.25em;
-  margin-bottom: 0.35em;
-}
-
-#add {
-  flex: 0 0 auto;
-  margin-top: 0.35em;
-  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.65), rgba(var(--accent-rgb), 0.35));
-  border-color: rgba(var(--accent-rgb), 0.6);
-}
-
 #list {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -173,7 +321,7 @@ h2 {
   width: 100%;
 }
 
-#none {
+#emptyState {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -224,48 +372,498 @@ h2 {
   transform: scale(0.9);
 }
 
-h1, h2, #estimateInput, #granularitySelect {
-  font-family: inherit;
+/* ---- Handoff toast ---- */
+
+/* Anchored to the card, not the scroller, so it stays put as entries scroll. */
+#undoToast {
+  position: absolute;
+  left: 0.5em;
+  right: 0.5em;
+  bottom: 0.5em;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em 0.65em;
+  border-radius: 0.7em;
+  font-size: 0.62em;
+  text-align: left;
+  background: rgba(28, 28, 30, 0.94);
+  border: 1px solid rgba(var(--glass-rgb), 0.14);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
 }
 
-#estimateInput {
-  display: none;
-  font: inherit;
+#undoText {
+  flex: 1 1 auto;
+  color: rgba(235, 235, 245, 0.85);
+}
+
+#undoText b {
   color: var(--text-primary);
-  background: var(--glass-fill);
+  font-weight: 600;
+}
+
+#undoButton {
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: rgb(var(--accent-rgb));
+  cursor: pointer;
+}
+
+/* ---- Clear and + ---- */
+
+#clear, #add {
+  max-width: 750px;
+  width: 100%;
+  padding: 0.45em 0.9em;
+  border-radius: 0.9em;
+  font-size: 2em;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-primary);
   border: 1px solid var(--glass-border);
-  border-radius: 0.2em;
-  width: 2.2em;
-  margin-right: 0.1em;
-  text-align: center;
-  -moz-appearance: textfield;
+  background: linear-gradient(180deg, rgba(var(--glass-rgb), 0.18), rgba(var(--glass-rgb), 0.05));
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 8px 20px var(--glass-shadow), inset 0 1px 0 rgba(var(--glass-rgb), 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+#clear:active, #add:active {
+  transform: scale(0.97);
+  box-shadow: 0 4px 10px var(--glass-shadow), inset 0 1px 0 rgba(var(--glass-rgb), 0.15);
+}
+
+#clear {
+  margin-top: 0.2em;
+  margin-bottom: 0.3em;
+}
+
+/* The + is full-width where a thumb rests, so it doubles as a place to start a
+   swipe; both axes go to JS or the browser would claim the vertical pull. */
+#add {
+  flex: 0 0 auto;
+  margin-top: 0.3em;
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.65), rgba(var(--accent-rgb), 0.35));
+  border-color: rgba(var(--accent-rgb), 0.6);
+  touch-action: none;
+}
+
+/* Once a drag commits to an axis the press is no longer a tap, so the button
+   drops its pressed look rather than sitting lit through the swipe. */
+#page.swiping #add:active {
+  transform: none;
+  box-shadow: 0 8px 20px var(--glass-shadow), inset 0 1px 0 rgba(var(--glass-rgb), 0.25);
+}
+
+/* ---- Rename sheet ---- */
+
+/* The page recedes behind the sheet, so it reads as modal without a scrim. */
+#page.sheet-open > *:not(#renameSheet) {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+#renameSheet {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45em;
+  padding: 0.7em 0.6em 0.6em;
+  border-radius: 1.1em;
+  border: 1px solid var(--glass-border);
+  background: var(--raised-bg);
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.7);
+}
+
+#renameLabel {
+  font-size: 0.72em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  text-align: left;
+}
+
+#renameInput {
+  padding: 0.3em 0.45em;
+  border-radius: 0.6em;
+  border: 1px solid rgba(var(--accent-rgb), 0.7);
+  background: rgba(var(--glass-rgb), 0.06);
+  font-family: inherit;
+  font-size: 1.35em;
+  color: var(--text-primary);
+  text-align: left;
   caret-color: rgb(var(--accent-rgb));
 }
 
-#estimateInput::selection {
-  background: rgba(var(--accent-rgb), 0.45);
+#renameButtons {
+  display: flex;
+  gap: 0.35em;
+  margin-top: 0.15em;
 }
 
-/* Hide the native spinner arrows; they crowd the "h" suffix and aren't
-   useful at this size anyway (keyboard/numpad entry is the intended path). */
-#estimateInput::-webkit-outer-spin-button,
-#estimateInput::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+#renameButtons button {
+  flex: 1 1 0;
+  padding: 0.4em;
+  border-radius: 0.75em;
+  font-size: 1.1em;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
 }
 
-#granularitySelect {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
+#deleteProject {
+  color: rgb(var(--danger-rgb));
+  border: 1px solid rgba(var(--danger-rgb), 0.45);
+  background: rgba(var(--danger-rgb), 0.12);
+}
+
+#saveProject {
+  color: var(--text-primary);
+  border: 1px solid rgba(var(--accent-rgb), 0.6);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.65), rgba(var(--accent-rgb), 0.35));
+}
+
+/* With one project left, both delete controls mute rather than disappear, so
+   the action stays visible and explains itself through its title. */
+#deleteProject:disabled {
+  color: rgba(235, 235, 245, 0.3);
+  border-color: rgba(var(--glass-rgb), 0.1);
+  background: rgba(var(--glass-rgb), 0.03);
+  cursor: not-allowed;
+}
+
+.dashDelete:disabled {
+  background-image: none;
+  background-color: rgba(var(--glass-rgb), 0.08);
+  color: rgba(235, 235, 245, 0.3);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+#renameHint {
+  font-size: 0.66em;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+  text-align: left;
+}
+
+/* ---- Dashboard ---- */
+
+/* Parked above the viewport and slid down, so opening reads as the
+   continuation of the pull-down gesture. */
+#dashboard {
+  z-index: 20;
+  background: linear-gradient(160deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+  transform: translateY(-100%);
+  transition: transform var(--pull-ms) ease-out;
+  touch-action: pan-y;
+}
+
+#dashboard.open {
+  transform: translateY(0);
+}
+
+#dashBar {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+}
+
+#dashLabel {
+  font-size: 0.7em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* The dashboard bar is shorter than the project strip, so its heading keeps a
+   larger margin and both Total readouts land at the same height. */
+#dashHeader h1 {
+  margin-top: 0.62em;
+}
+
+#dashHeader {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+#dashRunning {
+  margin-top: 0.1em;
+}
+
+#dashRunning span {
+  color: var(--accent-text);
+}
+
+/* Idle: no name to highlight, so it reads as plain secondary text. */
+#dashRunning span.idle {
+  color: var(--text-tertiary);
+}
+
+#dashCard {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  margin-top: 0.55em;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 1.1em;
+  border: 1px solid var(--glass-border);
+  background-color: rgba(var(--card-rgb), 0.72);
+  box-shadow: 0 14px 34px var(--glass-shadow);
+}
+
+.dashRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.62em 0.6em;
+  border-bottom: 1px solid rgba(var(--glass-rgb), 0.08);
+  text-align: left;
+  font-size: 0.86em;
+}
+
+/* Tinted, not just dotted, so the running row is findable in a long list. */
+.dashRow.running {
+  background: rgba(var(--accent-rgb), 0.14);
+}
+
+/* While a new project is being named, existing rows step back. */
+.dashRow.dimmed {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.dashDot {
+  flex: 0 0 auto;
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 50%;
+  background: rgba(var(--glass-rgb), 0.18);
+}
+
+.dashRow.running .dashDot {
+  background: rgb(var(--accent-rgb));
+  box-shadow: 0 0 9px rgba(var(--accent-rgb), 0.9);
+}
+
+.dashName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dashHours {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.dashToggle {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2em;
+  height: 2em;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0.95em;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-primary);
+  border: 1px solid rgba(var(--glass-rgb), 0.18);
+  background: linear-gradient(180deg, rgba(var(--glass-rgb), 0.16), rgba(var(--glass-rgb), 0.04));
+  cursor: pointer;
+}
+
+/* Rows are shorter than the 44px minimum, so the target overflows the row
+   vertically — harmless, since nothing else there is tappable. */
+.dashToggle::after, .dashDelete::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+}
+
+/* The running project's button stays a "+" — it is the same toggle, not a
+   destructive action — so it takes the accent rather than the delete red. */
+.dashToggle.running {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.85), rgba(var(--accent-rgb), 0.45));
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(var(--glass-rgb), 0.3);
+}
+
+.dashRow.new {
+  color: var(--accent-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Keeps the label aligned with the named rows, which start with a dot. */
+.dashRow.new .dashDot {
+  background: none;
+}
+
+.dashRow.naming {
+  padding: 0.5em 0.6em;
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+#newProjectInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.18em 0.35em;
+  border-radius: 0.4em;
+  border: 1px solid rgba(var(--accent-rgb), 0.7);
+  background: rgba(var(--glass-rgb), 0.06);
   font: inherit;
-  color: var(--text-secondary);
-  background-color: rgba(var(--glass-rgb), 0.05);
-  border: 1px solid rgba(var(--glass-rgb), 0.12);
-  border-radius: 0.2em;
-  padding: 0 0.8em 0 0.1em;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8a8ad' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.12em center;
-  background-size: 0.5em 0.5em;
+  color: var(--text-primary);
+  caret-color: rgb(var(--accent-rgb));
+}
+
+#newProjectInput::placeholder {
+  color: var(--text-tertiary);
+}
+
+#newProjectDone {
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: rgb(var(--accent-rgb));
+  cursor: pointer;
+}
+
+.dashHint {
+  padding: 0.5em 0.6em;
+  text-align: left;
+  font-size: 0.62em;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* ---- Edit mode ---- */
+
+/* The handle owns both axes, so dragging it reorders instead of scrolling.
+   The padding is tap target only — border-box keeps the bars 0.7em wide. */
+.dragHandle {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  width: 2.1em;
+  padding: 16px 0.72em;
+  touch-action: none;
+  cursor: grab;
+}
+
+.dragHandle i {
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(235, 235, 245, 0.45);
+}
+
+/* Raised above its neighbours so the dragged row slides over them. */
+.dashRow.lifted {
+  background: rgba(58, 58, 60, 0.96);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+  position: relative;
+  z-index: 2;
+  cursor: grabbing;
+}
+
+.dashDelete {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7em;
+  height: 1.7em;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  font-size: 0.8em;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--text-primary);
+  background-image: linear-gradient(180deg, rgba(var(--danger-rgb), 0.95), rgba(200, 40, 35, 0.95));
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(var(--glass-rgb), 0.3);
+  cursor: pointer;
+}
+
+/* ---- Dashboard footer ---- */
+
+#dashActions {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  gap: 0.35em;
+  margin-top: 0.3em;
+}
+
+#dashActions button {
+  flex: 1 1 0;
+  padding: 0.45em 0.5em;
+  border-radius: 0.9em;
+  font-size: 1.15em;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(180deg, rgba(var(--glass-rgb), 0.18), rgba(var(--glass-rgb), 0.05));
+  box-shadow: 0 8px 20px var(--glass-shadow), inset 0 1px 0 rgba(var(--glass-rgb), 0.25);
+  cursor: pointer;
+}
+
+/* Edit mode confirms itself with a primary Done button... */
+#dashboard.editing #dashEdit {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.65), rgba(var(--accent-rgb), 0.35));
+}
+
+/* ...and mutes what is unavailable until you are done. */
+#dashboard.editing #dashClearAll,
+#dashboard.editing #dashClose {
+  color: rgba(235, 235, 245, 0.4);
+  border-color: rgba(var(--glass-rgb), 0.1);
+  background: rgba(var(--glass-rgb), 0.03);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+/* Secondary to Edit/Clear all, but plainly enabled — the muted treatment is
+   reserved for the genuinely disabled edit-mode state above. */
+#dashClose {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 0.45em 0.9em;
+  border-radius: 0.9em;
+  font-size: 1.35em;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  background: rgba(var(--glass-rgb), 0.1);
+  margin-top: 0.35em;
+  cursor: pointer;
 }

@@ -9,22 +9,85 @@
 </head>
 
 <body>
-  <div id="header">
-    <!-- <button id="history">History</button> -->
-    <h1>Total: <span id="total"></span></h1>
-    <h2><span id="estimateLabel"><span id="estimateValue">7</span><input id="estimateInput" type="number" inputmode="decimal" step="0.1" min="0.1" max="20">h</span>: <span id="endTime"></span></h2>
-    <h2>Next <select id="granularitySelect">
-        <option value="6">tenth</option>
-        <option value="30">half</option>
-        <option value="60">hour</option>
-      </select>: <span id="tenth"></span></h2>
-    <button id="clear">Clear</button>
+  <!-- Project page: the v1 page, with the project strip added above it.
+       Everything here reads and writes the active project only. -->
+  <div id="page">
+
+    <!-- Grabber hints the pull-down; the name carries a blue dot while this
+         project holds the clock; the dots give its place in the swipe deck. -->
+    <div id="projectBar">
+      <div id="grabber"></div>
+      <div id="projectNameRow">
+        <div id="runningDot" hidden></div>
+        <div id="projectName"></div>
+      </div>
+      <div id="projectDots"></div>
+    </div>
+
+    <div id="header">
+      <h1>Total: <span id="total"></span></h1>
+      <!-- The "7h" label swaps itself for an input on tap, so it is marked up
+           as a button: keyboard-reachable and announced as actionable. -->
+      <h2><span id="estimateLabel" role="button" tabindex="0" aria-label="Daily hours estimate"><span id="estimateValue">7</span><input id="estimateInput" type="number" inputmode="decimal" step="0.1" min="0.1" max="20">h</span>: <span id="endTime"></span></h2>
+      <h2>Next <select id="granularitySelect">
+          <option value="6">tenth</option>
+          <option value="30">half</option>
+          <option value="60">hour</option>
+        </select>: <span id="nextMark"></span></h2>
+      <button id="clear">Clear</button>
+    </div>
+
+    <!-- #listCard is the card and the positioning context; #listWrap inside it
+         is the only thing that scrolls, so the toast and the empty-state
+         message stay pinned instead of scrolling away with the entries. -->
+    <div id="listCard">
+      <div id="listWrap">
+        <div id="list"></div>
+      </div>
+      <h2 id="emptyState">No Entries</h2>
+      <div id="undoToast" hidden>
+        <div id="undoText"></div>
+        <button id="undoButton">Undo</button>
+      </div>
+    </div>
+
+    <button id="add">+</button>
+
+    <!-- Raised in place of the + button, with the page dimmed behind it. -->
+    <div id="renameSheet" hidden>
+      <div id="renameLabel">Rename project</div>
+      <input id="renameInput" type="text" autocomplete="off" spellcheck="false">
+      <div id="renameButtons">
+        <button id="deleteProject">Delete project</button>
+        <button id="saveProject">Save</button>
+      </div>
+      <div id="renameHint">Deleting removes the project and its entries. If it was running, the clock stops.</div>
+    </div>
+
   </div>
-  <div id="listWrap">
-    <div id="list"></div>
-    <h2 id="none">No Entries</h2>
+
+  <!-- Dashboard: pull down from the project page. Same header grammar,
+       totalled across every project, with per-project rows below. -->
+  <div id="dashboard" hidden>
+    <div id="dashBar">
+      <div id="dashGrabber"></div>
+      <div id="dashLabel">All projects · today</div>
+    </div>
+    <div id="dashHeader">
+      <h1>Total: <span id="dashTotal"></span></h1>
+      <h2 id="dashEstimate"></h2>
+      <h2 id="dashRunning"></h2>
+    </div>
+    <div id="dashCard">
+      <div id="dashList"></div>
+    </div>
+    <div id="dashActions">
+      <button id="dashEdit">Edit</button>
+      <button id="dashClearAll">Clear all</button>
+    </div>
+    <button id="dashClose">Close</button>
   </div>
-  <button id="add">+</button>
+
   <script src="script.js"></script>
 </body>
 
