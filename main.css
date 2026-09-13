@@ -107,12 +107,14 @@ body {
 }
 
 /* These controls are deliberately small to look at, so each one carries an
-   invisible tap target around it. Insets are chosen to clear the 44px
-   minimum without changing the layout the visible shapes produce. */
+   invisible tap target around it, sized not to reach into a neighbour's.
+   The strip is too dense for three stacked 44px targets, so the grabber
+   takes the smaller one: tapping it is a shortcut, while the pull-down
+   gesture it hints at works from anywhere on the strip or header. */
 #grabber::after, #dashGrabber::after {
   content: "";
   position: absolute;
-  inset: -20px -40px;
+  inset: -10px -40px -5px;
 }
 
 /* Brighter on the dashboard, where it means "pull this back up". */
@@ -122,7 +124,11 @@ body {
 
 /* Padded out to a comfortable tap target, and tinted on press so the tap that
    opens the rename sheet is acknowledged. */
+/* Raised above its neighbours' tap targets so a tap near its edges opens the
+   rename sheet rather than the dashboard or the next project. */
 #projectNameRow {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -170,15 +176,27 @@ body {
   cursor: pointer;
 }
 
-/* Tap target, sized so neighbouring dots meet but never overlap. */
+/* Tap target: neighbouring dots meet but never overlap, and it extends
+   downward into the (non-interactive) space above the total rather than up
+   into the project name. */
 .deckDot::after {
   content: "";
   position: absolute;
-  inset: -17px -11px;
+  inset: -6px -11px -28px;
 }
 
 .deckDot.active {
   background: rgb(var(--accent-rgb));
+}
+
+/* On short screens the strip gives back its breathing room — never its tap
+   targets, which are padding-based and unaffected — so the entry list keeps
+   the row it would otherwise lose. */
+@media (max-height: 700px) {
+  #projectBar {
+    gap: 6px;
+    padding-top: 6px;
+  }
 }
 
 /* ---- Header ---- */
